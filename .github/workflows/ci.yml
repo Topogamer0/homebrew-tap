@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_ENV_HINTS: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+
+jobs:
+  style:
+    name: Style and audit, every platform
+    runs-on: ubuntu-24.04
+    steps:
+      # Checks out this repository as the topogamer0/tap tap and trusts it.
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878 # 2026.10.19.1
+
+      - name: brew style
+        run: brew style topogamer0/tap
+
+      # Loads each formula as macOS and Linux, on arm64 and x86_64.
+      - name: brew audit
+        run: brew audit --strict --online --os=all --arch=all --tap=topogamer0/tap
+
+      # The release workflows of the projects run this script: it must
+      # understand every formula (here it finds them up to date).
+      - name: Check scripts/bump-formula.py
+        run: |
+          for formula in Formula/*.rb; do
+            name="$(basename "$formula" .rb)"
+            version="$(brew info --json=v2 "topogamer0/tap/$name" | jq -r '.formulae[0].versions.stable')"
+            python3 scripts/bump-formula.py "$formula" "$version"
+          done
+          git diff --exit-code
+
+  formula:
+    name: ${{ matrix.formula }}, ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        formula: [luau-shield, failstep, ollama-c, ollama-c-rag]
+        platform: [macOS arm64, macOS x86_64, Linux x86_64, Linux arm64]
+        include:
+          - platform: macOS arm64
+            runner: macos-15
+          - platform: macOS x86_64
+            runner: macos-15-intel
+          - platform: Linux x86_64
+            runner: ubuntu-24.04
+          - platform: Linux arm64
+            runner: ubuntu-24.04-arm
+    steps:
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878 # 2026.10.19.1
+
+      # Builds the formula itself from source (or installs the release binary
+      # where the formula uses one); its dependencies come from bottles.
+      - name: brew install
+        run: brew install --build-from-source --include-test --verbose topogamer0/tap/${{ matrix.formula }}
+
+      - name: brew test
+        run: brew test --verbose topogamer0/tap/${{ matrix.formula }}
+
+      - name: brew audit
+        run: brew audit --strict --online topogamer0/tap/${{ matrix.formula }}
+
+      - name: brew linkage
+        run: brew linkage --test topogamer0/tap/${{ matrix.formula }}
+
+      - name: Upload the logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs-${{ matrix.formula }}-${{ matrix.runner }}
+          path: |
+            ~/Library/Logs/Homebrew/
+            ~/.cache/Homebrew/Logs/
+          if-no-files-found: ignore
