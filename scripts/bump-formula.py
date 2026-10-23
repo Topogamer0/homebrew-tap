@@ -6,15 +6,22 @@ Usage: bump-formula.py <Formula/name.rb> <version>
 Every `url` of the formula (release binaries and source archives, in any
 on_macos/on_linux/on_arm/on_intel block) is rewritten from the current
 version to <version>, each file is downloaded, and the `sha256` that follows
-the `url` is replaced with the checksum of the new file. A `version` line, if
-the formula has one, is updated too. Nothing changes when the formula is
-already at <version>.
+the `url` is set to the checksum of that file. A `version` line, if the
+formula has one, is updated too.
+
+At the version the formula already has, the files are downloaded again and
+the checksums that changed are rewritten, so re-running a release that
+rebuilt its assets, or moving a tag, keeps the formula installable. A version
+older than the formula's is refused (nothing is written, exit status 0), so a
+re-run of an old release cannot move the formula back. The file is written
+only when something changed, and only after every download succeeded.
 
 Used by the release workflows of the projects (see docs/release-integration.md).
 Only the Python standard library is needed.
 """
 
 import hashlib
+import http.client
 import re
 import sys
 import time
@@ -40,23 +47,28 @@ def sha256_of(url, attempts=5):
     for attempt in range(1, attempts + 1):
         try:
             request = urllib.request.Request(url, headers={"User-Agent": "homebrew-tap-bump"})
-            digest = hashlib.sha256()
             with urllib.request.urlopen(request, timeout=120) as response:
-                for block in iter(lambda: response.read(1 << 16), b""):
-                    digest.update(block)
-            return digest.hexdigest()
-        except OSError as e:  # URLError and HTTPError are OSErrors
+                # read() of the whole body raises IncompleteRead when the connection
+                # drops early; reading it in blocks would hash a truncated file.
+                return hashlib.sha256(response.read()).hexdigest()
+        # URLError and HTTPError are OSErrors; IncompleteRead is an HTTPException.
+        except (OSError, http.client.HTTPException) as e:
             if attempt == attempts:
                 sys.exit(f"error: cannot download {url}: {e}")
             print(f"  {url}: {e}, retrying", file=sys.stderr)
             time.sleep(10 * attempt)
 
 
+def version_key(version):
+    return tuple(int(part) for part in version.split("."))
+
+
 def main():
     if len(sys.argv) != 3:
         sys.exit(__doc__.strip().splitlines()[2])
     path, new = sys.argv[1], sys.argv[2].removeprefix("v")
-    if not re.fullmatch(r"\d+(\.\d+)+", new):
+    release_version = re.compile(r"\d+(\.\d+)+")
+    if not release_version.fullmatch(new):
         sys.exit(f"error: '{new}' is not a release version such as 1.2.3")
 
     with open(path, encoding="utf-8") as f:
@@ -69,10 +81,11 @@ def main():
     if len(versions) != 1:
         sys.exit(f"error: the urls of {path} name several versions: {', '.join(sorted(versions))}")
     old = versions.pop()
-    if old == new:
-        print(f"{path} is already at {new}")
+    if release_version.fullmatch(old) and version_key(new) < version_key(old):
+        print(f"{path} is at {old}, newer than {new}: left unchanged")
         return
 
+    original = list(lines)
     checksums = {}
     pending_sha = None  # the new url whose sha256 line comes next
     for i, line in enumerate(lines):
@@ -91,9 +104,12 @@ def main():
     if pending_sha:
         sys.exit(f"error: no sha256 after the url {pending_sha}")
 
+    if lines == original:
+        print(f"{path} is already at {new}, with the same checksums")
+        return
     with open(path, "w", encoding="utf-8") as f:
         f.writelines(lines)
-    print(f"{path}: {old} -> {new}")
+    print(f"{path}: {old} -> {new}" if old != new else f"{path}: checksums of {new} updated")
 
 
 if __name__ == "__main__":

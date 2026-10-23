@@ -35,7 +35,8 @@ jobs:
         run: brew audit --strict --online --os=all --arch=all --tap=topogamer0/tap
 
       # The release workflows of the projects run this script: it must
-      # understand every formula (here it finds them up to date).
+      # understand every formula. At the current versions it downloads every
+      # file again, so this also checks that the sha256 values are still right.
       - name: Check scripts/bump-formula.py
         run: |
           for formula in Formula/*.rb; do
@@ -68,7 +69,10 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@4790763c0a3ba4036f72634dc079c4a7dfcd4878 # 2026.10.19.1
 
       # Builds the formula itself from source (or installs the release binary
-      # where the formula uses one); its dependencies come from bottles.
+      # where the formula uses one). Dependencies come from bottles where
+      # homebrew-core has them; it no longer publishes macOS x86_64 bottles of
+      # CMake and pkgconf, so on macos-15-intel those are compiled first.
+      # ollama-c-rag also builds topogamer0/tap/ollama-c, which has no bottles.
       - name: brew install
         run: brew install --build-from-source --include-test --verbose topogamer0/tap/${{ matrix.formula }}
 

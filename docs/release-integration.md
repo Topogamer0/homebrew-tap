@@ -6,10 +6,19 @@ workflow updates the formula in this tap: it checks out `Topogamer0/homebrew-tap
 
 The script rewrites every `url` of the formula to the new version (release binaries and source
 archives, on every platform), downloads each file and puts its SHA-256 in the `sha256` line that
-follows the `url`. If a file is missing (an asset was renamed or not uploaded), it fails before
-writing anything, and the job fails. It does nothing when the formula is already at the version, so
-re-running a release is safe. The commit (`luau-shield 0.3.0`, ...) then runs the tap's
-[CI](../.github/workflows/ci.yml), which installs and tests the new version on every platform.
+follows the `url`. If a file is missing (an asset was renamed or not uploaded) or a download is cut
+short, it fails before writing anything, and the job fails. The commit (`luau-shield 0.3.0`, ...)
+then runs the tap's [CI](../.github/workflows/ci.yml), which installs and tests the new version on
+every platform.
+
+Re-running a release is safe both ways:
+
+- at the version the formula already has, the script downloads the files again and rewrites only
+  the checksums that changed, so a re-run that rebuilt and replaced the assets (luau-shield and
+  failstep upload with `--clobber` / overwrite) or a tag moved to another commit keeps the formula
+  installable; when nothing changed, the job pushes nothing;
+- for a version older than the formula's (an old run re-run after a newer release, or two tags
+  pushed together), the script leaves the formula alone.
 
 Pre-release tags (`v1.2.0-rc.1`) are skipped.
 
@@ -144,13 +153,13 @@ use it instead of building from source: that is a manual change to its `on_intel
 File: `.github/workflows/release.yml`. Add this job at the end, under `jobs:`, after the `windows`
 job. The formula builds the source archive of the tag; waiting for `windows` means the formula is
 only updated when the tag passed its version check and the release was created. The `if` skips
-manual runs of the workflow (`workflow_dispatch`) and pre-releases.
+manual runs of the workflow (`workflow_dispatch`, even on a tag) and pre-releases.
 
 ```yaml
   homebrew:
     name: Update the Homebrew formula
     needs: windows
-    if: ${{ github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' && !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     permissions: {}
     steps:
