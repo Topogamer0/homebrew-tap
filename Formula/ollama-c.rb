@@ -1,8 +1,8 @@
 class OllamaC < Formula
   desc "C client library for Ollama, a port of ollama-python"
   homepage "https://github.com/Topogamer0/Ollama-C"
-  url "https://github.com/Topogamer0/Ollama-C/archive/refs/tags/v0.2.0.tar.gz"
-  sha256 "c17e3c40c8d4e7f9310b53079b65cdc89dda459d4973a099ccac0e70ac53e5fd"
+  url "https://github.com/Topogamer0/Ollama-C/archive/refs/tags/v0.2.1.tar.gz"
+  sha256 "39b6ad99f61678619f01af094aa17a1257c3594957e3e2bbfb6a35c1b269b91d"
   license "MIT"
 
   depends_on "cmake" => [:build, :test]
