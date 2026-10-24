@@ -1,8 +1,8 @@
 class OllamaCRag < Formula
   desc "Local retrieval-augmented generation in C, with Ollama and SQLite"
   homepage "https://github.com/Topogamer0/ollama-c-rag"
-  url "https://github.com/Topogamer0/ollama-c-rag/archive/refs/tags/v0.2.0.tar.gz"
-  sha256 "9479e9da8da64313bb490d0ac08266a1cb6b35bbe98c7b75a4cb07ff53a66e8d"
+  url "https://github.com/Topogamer0/ollama-c-rag/archive/refs/tags/v0.2.1.tar.gz"
+  sha256 "57f225d9266c7247fc4192682a7bb72d8fd2d5687a5a14827d774cf71362d500"
   license "MIT"
 
   depends_on "cmake" => [:build, :test]
