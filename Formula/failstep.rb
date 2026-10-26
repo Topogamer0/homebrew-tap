@@ -9,12 +9,12 @@ class Failstep < Formula
   # Prebuilt binaries where the release has them, the source everywhere else.
   on_macos do
     on_arm do
-      url "https://github.com/Topogamer0/failstep/releases/download/v0.1.1/failstep-v0.1.1-macos-arm64.tar.gz"
-      sha256 "0b7cce9534271fc3116cfe3777f863ec21f9c56f70e0fe0ba425433f5718b822"
+      url "https://github.com/Topogamer0/failstep/releases/download/v0.1.2/failstep-v0.1.2-macos-arm64.tar.gz"
+      sha256 "d55deef1e4e8137efa48d9e4ea32735738b07fdcc64a5b94059cf6daae52ba0d"
     end
     on_intel do
-      url "https://github.com/Topogamer0/failstep/archive/refs/tags/v0.1.1.tar.gz"
-      sha256 "8cdab9d4a4a377ff0eafdbd11611f4521bc9da5a87e0cdc56279b3abe18b610f"
+      url "https://github.com/Topogamer0/failstep/archive/refs/tags/v0.1.2.tar.gz"
+      sha256 "e772a9614957d55182b66af6a9978e9d9aa32fba6b9170dc434351d8cf59440b"
 
       depends_on "cmake" => :build
     end
@@ -22,14 +22,14 @@ class Failstep < Formula
 
   on_linux do
     on_arm do
-      url "https://github.com/Topogamer0/failstep/archive/refs/tags/v0.1.1.tar.gz"
-      sha256 "8cdab9d4a4a377ff0eafdbd11611f4521bc9da5a87e0cdc56279b3abe18b610f"
+      url "https://github.com/Topogamer0/failstep/archive/refs/tags/v0.1.2.tar.gz"
+      sha256 "e772a9614957d55182b66af6a9978e9d9aa32fba6b9170dc434351d8cf59440b"
 
       depends_on "cmake" => :build
     end
     on_intel do
-      url "https://github.com/Topogamer0/failstep/releases/download/v0.1.1/failstep-v0.1.1-linux-x86_64.tar.gz"
-      sha256 "3c47516ac7b902c58098eadff1f089fbaa87402d7eee614d5a9b6a49a24c2fcf"
+      url "https://github.com/Topogamer0/failstep/releases/download/v0.1.2/failstep-v0.1.2-linux-x86_64.tar.gz"
+      sha256 "276c6c0ab23f7f6f68ce007598dfa77e4c58555d8aac7ce447dca6b7e6f92243"
     end
   end
 
